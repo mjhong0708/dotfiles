@@ -4,10 +4,10 @@
 
 # Set custom PATH
 BIN_DIRS=(
-    "$HOME/opt/bin"
-    "$HOME/.local/bin"
     "$HOME/.cargo/bin"
     "$HOME/go/bin"
+    "$HOME/opt/bin"
+    "$HOME/.local/bin"
 )
 for dir in "${BIN_DIRS[@]}"; do
     if [ -d "$dir" ]; then
