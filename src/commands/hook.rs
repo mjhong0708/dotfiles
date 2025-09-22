@@ -18,7 +18,6 @@ pub fn hook(shell: &str) -> Result<()> {
 }
 
 fn generate_shell_config(_shell: &str) -> Result<()> {
-    // Export DOTFILES_DIR (use environment variable or default)
     let dotfiles_dir = env::var("DOTFILES_DIR").unwrap_or_else(|_| {
         env::var("HOME")
             .map(|home| format!("{}/.config/dotfiles", home))
