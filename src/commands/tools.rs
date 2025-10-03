@@ -1,4 +1,5 @@
-use crate::{DotfilesError, Result, error, info, warning};
+use crate::{Context, Result, info, warning};
+use anyhow::bail;
 use std::process::Command;
 
 pub trait ToolInstaller {
@@ -94,41 +95,40 @@ fn install_with_cargo(tool: &str) -> Result<()> {
     info!("Installing {} with cargo...", tool);
 
     if !is_cmd_available("cargo") {
-        return Err(DotfilesError::Tool(
-            "Cargo not found. Please install Rust first.".to_string(),
-        ));
+        bail!("Cargo not found. Please install Rust first.");
     }
 
-    let output = Command::new("cargo").args(["install", tool]).output()?;
+    let output = Command::new("cargo")
+        .args(["install", tool])
+        .output()
+        .context("Failed to execute cargo install")?;
 
-    if output.status.success() {
-        info!("Successfully installed {}", tool);
-    } else {
+    if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        error!("Failed to install {}: {}", tool, stderr);
-        return Err(DotfilesError::Tool(format!("Failed to install {}", tool)));
+        bail!("Failed to install {}: {}", tool, stderr);
     }
 
+    info!("Successfully installed {}", tool);
     Ok(())
 }
 
 fn install_with_brew(tool: &str) -> Result<()> {
     info!("Installing {} with brew...", tool);
+
     if !is_cmd_available("brew") {
-        return Err(DotfilesError::Tool(
-            "Homebrew not found. Please install Homebrew first.".to_string(),
-        ));
+        bail!("Homebrew not found. Please install Homebrew first.");
     }
 
-    let output = Command::new("brew").args(["install", tool]).output()?;
+    let output = Command::new("brew")
+        .args(["install", tool])
+        .output()
+        .context("Failed to execute brew install")?;
 
-    if output.status.success() {
-        info!("Successfully installed {}", tool);
-    } else {
+    if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        error!("Failed to install {}: {}", tool, stderr);
-        return Err(DotfilesError::Tool(format!("Failed to install {}", tool)));
+        bail!("Failed to install {}: {}", tool, stderr);
     }
 
+    info!("Successfully installed {}", tool);
     Ok(())
 }

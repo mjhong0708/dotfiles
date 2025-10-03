@@ -1,117 +1,83 @@
 use crate::shell::{detect_shell, get_shell_config_path, prepend_hook_to_config};
-use crate::{DotfilesError, Result, info, warning};
-use std::env;
+use crate::{Context, Result, create_symlink, env_var, info, warning};
+use anyhow::bail;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn install() -> Result<()> {
     info!("Installing dotfiles...");
 
-    // Get dotfiles directory (fixed path)
-    let home = env::var("HOME")
-        .map_err(|_| DotfilesError::Shell("HOME environment variable not set".to_string()))?;
-    let dotfiles_dir = PathBuf::from(format!("{}/.config/dotfiles", home));
-    if !dotfiles_dir.exists() {
-        return Err(DotfilesError::Io(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!(
-                "Dotfiles directory not found at {}. Please clone the repository first.",
-                dotfiles_dir.display()
-            ),
-        )));
-    }
-
+    let dotfiles_dir = get_dotfiles_dir()?;
     info!("Dotfiles directory: {}", dotfiles_dir.display());
 
     let shell = detect_shell()?;
     let config_path = get_shell_config_path(&shell)?;
     info!("Detected shell config: {}", config_path.display());
+
     prepend_hook_to_config(&config_path, &shell)?;
-    create_config_symlinks(&dotfiles_dir)?;
+    install_root_configs(&dotfiles_dir)?;
+    install_dot_config_dir(&dotfiles_dir)?;
 
     info!("Dotfiles installation complete!");
-    info!(
-        "Please restart your shell or run: source {}",
-        config_path.display()
-    );
+    info!("Please restart your shell or run: source {}", config_path.display());
 
     Ok(())
 }
 
-fn create_config_symlinks(dotfiles_dir: &Path) -> Result<()> {
-    let config_source_dir = dotfiles_dir.join("home").join(".config");
-    let home = env::var("HOME")
-        .map_err(|_| DotfilesError::Shell("HOME environment variable not set".to_string()))?;
-    let config_target_dir = Path::new(&home).join(".config");
-
-    fs::create_dir_all(&config_target_dir)?;
-    if !config_source_dir.exists() {
-        warning!(
-            "Config directory not found at {}",
-            config_source_dir.display()
+fn get_dotfiles_dir() -> Result<PathBuf> {
+    let home = env_var("HOME")?;
+    let dotfiles_dir = PathBuf::from(format!("{}/.config/dotfiles", home));
+    if !dotfiles_dir.exists() {
+        bail!(
+            "Dotfiles directory not found at {}. Please clone the repository first.",
+            dotfiles_dir.display()
         );
-        return Ok(());
     }
 
-    for entry in fs::read_dir(&config_source_dir)? {
-        let entry = entry?;
-        let source = entry.path();
-        let filename = entry.file_name();
-        let target = config_target_dir.join(&filename);
-
-        create_symlink(&source, &target)?;
-    }
-
-    Ok(())
+    Ok(dotfiles_dir)
 }
 
-fn create_symlink(source: &Path, target: &Path) -> Result<()> {
-    if target.exists() {
-        if target.is_symlink() {
-            let current_link = fs::read_link(target)?;
-            if current_link == source {
-                info!(
-                    "Symlink {} already points to {}",
-                    target.display(),
-                    source.display()
-                );
-                return Ok(());
-            } else {
-                warning!("Removing existing symlink {}", target.display());
-                if target.is_dir() {
-                    fs::remove_dir_all(target)?;
-                } else {
-                    fs::remove_file(target)?;
+fn install_root_configs(dotfiles_dir: &Path) -> Result<()> {
+    let user_home = env_var("HOME")?;
+    let source_dir = dotfiles_dir.join("home");
+    let target_dir = Path::new(&user_home);
+
+    for entry in fs::read_dir(&source_dir).context("Failed to read home directory")? {
+        match entry {
+            Ok(entry) => {
+                let source = entry.path();
+                if source.file_name().map_or(false, |name| name == ".config") {
+                    continue; // Skip .config directory
                 }
+                let target = target_dir.join(&entry.file_name());
+                create_symlink(&source, &target)?;
             }
-        } else {
-            let timestamp = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-            let backup = format!("{}.backup.{}", target.display(), timestamp);
-            warning!("Backing up existing {} to {}", target.display(), backup);
-            fs::rename(target, &backup)?;
+            Err(e) => {
+                warning!("Failed to read {} in home directory: Skipping...", e);
+            }
         }
     }
 
-    info!(
-        "Creating symlink: {} -> {}",
-        target.display(),
-        source.display()
-    );
+    Ok(())
+}
 
-    #[cfg(unix)]
-    {
-        std::os::unix::fs::symlink(source, target)?;
-    }
+fn install_dot_config_dir(dotfiles_dir: &Path) -> Result<()> {
+    let user_home = env_var("HOME")?;
+    let source_dir = dotfiles_dir.join("home").join(".config");
+    let target_dir = Path::new(&user_home).join(".config");
 
-    #[cfg(windows)]
-    {
-        if source.is_dir() {
-            std::os::windows::fs::symlink_dir(source, target)?;
-        } else {
-            std::os::windows::fs::symlink_file(source, target)?;
+    fs::create_dir_all(&target_dir).context("Failed to create .config directory")?;
+
+    for entry in fs::read_dir(&source_dir).context("Failed to read config directory")? {
+        match entry {
+            Ok(entry) => {
+                let source = entry.path();
+                let target = target_dir.join(&entry.file_name());
+                create_symlink(&source, &target)?;
+            }
+            Err(e) => {
+                warning!("Failed to read {} in config directory: Skipping...", e);
+            }
         }
     }
 

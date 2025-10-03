@@ -1,7 +1,7 @@
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::{Result, DotfilesError, info};
+use crate::{Result, env_var, info};
+use anyhow::bail;
 
 #[derive(Debug, Clone)]
 pub enum Shell {
@@ -19,19 +19,19 @@ impl Shell {
 }
 
 pub fn detect_shell() -> Result<Shell> {
-    let shell_path = env::var("SHELL").map_err(|_| DotfilesError::Shell("SHELL environment variable not set".to_string()))?;
+    let shell_path = env_var("SHELL")?;
 
     if shell_path.contains("zsh") {
         Ok(Shell::Zsh)
     } else if shell_path.contains("bash") {
         Ok(Shell::Bash)
     } else {
-        Err(DotfilesError::Shell(format!("Unsupported shell: {}", shell_path)))
+        bail!("Unsupported shell: {}", shell_path)
     }
 }
 
 pub fn get_shell_config_path(shell: &Shell) -> Result<PathBuf> {
-    let home = env::var("HOME").map_err(|_| DotfilesError::Shell("HOME environment variable not set".to_string()))?;
+    let home = env_var("HOME")?;
     let home_path = Path::new(&home);
 
     let candidates = match shell {

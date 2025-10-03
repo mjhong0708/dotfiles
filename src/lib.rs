@@ -1,51 +1,70 @@
 pub mod commands;
 pub mod shell;
+pub use anyhow::{Context, Result};
+use std::env;
+use std::fs;
+use std::path::Path;
 
-use std::fmt;
-
-#[derive(Debug)]
-pub enum DotfilesError {
-    Io(std::io::Error),
-    Shell(String),
-    Tool(String),
+/// Helper to get environment variable with context
+pub fn env_var(name: &str) -> Result<String> {
+    env::var(name).with_context(|| format!("{} environment variable not set", name))
 }
 
-impl fmt::Display for DotfilesError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DotfilesError::Io(err) => write!(f, "IO error: {}", err),
-            DotfilesError::Shell(msg) => write!(f, "Shell error: {}", msg),
-            DotfilesError::Tool(msg) => write!(f, "Tool error: {}", msg),
+fn create_symlink(source: &Path, target: &Path) -> Result<()> {
+    if target.exists() {
+        if target.is_symlink() {
+            let current_link = fs::read_link(target)?;
+            if current_link == source {
+                info!("Symlink {} already points to {}", target.display(), source.display());
+                return Ok(());
+            } else {
+                warning!("Removing existing symlink {}", target.display());
+                if target.is_dir() {
+                    fs::remove_dir_all(target)?;
+                } else {
+                    fs::remove_file(target)?;
+                }
+            }
+        } else {
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            let backup = format!("{}.backup.{}", target.display(), timestamp);
+            warning!("Backing up existing {} to {}", target.display(), backup);
+            fs::rename(target, &backup)?;
         }
     }
-}
 
-impl std::error::Error for DotfilesError {}
+    info!("Creating symlink: {} -> {}", target.display(), source.display());
 
-impl From<std::io::Error> for DotfilesError {
-    fn from(err: std::io::Error) -> Self {
-        DotfilesError::Io(err)
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(source, target)?;
     }
+
+    #[cfg(windows)]
+    {
+        if source.is_dir() {
+            std::os::windows::fs::symlink_dir(source, target)?;
+        } else {
+            std::os::windows::fs::symlink_file(source, target)?;
+        }
+    }
+
+    Ok(())
 }
 
-pub type Result<T> = std::result::Result<T, DotfilesError>;
-
+#[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
         println!("\x1b[32m[INFO]\x1b[0m {}", format!($($arg)*));
     };
 }
 
+#[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {
         println!("\x1b[33m[WARN]\x1b[0m {}", format!($($arg)*));
     };
 }
-
-macro_rules! error {
-    ($($arg:tt)*) => {
-        eprintln!("\x1b[31m[ERROR]\x1b[0m {}", format!($($arg)*));
-    };
-}
-
-pub(crate) use {info, warning, error};

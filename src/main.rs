@@ -1,6 +1,7 @@
+use anyhow::Result;
 use clap::{Parser, Subcommand};
-use dotfiles::Result;
 use dotfiles::commands::{all_tools, check_and_install_tools, hook, install};
+use dotfiles::info;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -47,6 +48,7 @@ fn main() -> Result<()> {
         Commands::Install { no_tools } => {
             install()?;
             if !no_tools {
+                info!("Installing development tools...");
                 check_and_install_tools()?;
             }
         }
@@ -66,6 +68,7 @@ fn main() -> Result<()> {
                 }
             }
             ToolsAction::Install => {
+                info!("Installing development tools...");
                 check_and_install_tools()?;
             }
         },
