@@ -39,7 +39,7 @@ pub fn install() -> Result<()> {
 }
 
 fn create_config_symlinks(dotfiles_dir: &Path) -> Result<()> {
-    let config_source_dir = dotfiles_dir.join(".config");
+    let config_source_dir = dotfiles_dir.join("home").join(".config");
     let home = env::var("HOME")
         .map_err(|_| DotfilesError::Shell("HOME environment variable not set".to_string()))?;
     let config_target_dir = Path::new(&home).join(".config");
