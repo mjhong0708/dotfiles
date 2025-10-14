@@ -10,3 +10,30 @@ fi
 if command -v lazygit >/dev/null 2>&1; then
     alias lg='lazygit'
 fi
+
+
+# Directories and files to exclude from rsync
+RSYNC_EXCLUDES=(
+    # Python
+    '*.pyc'
+    '*.pyo'
+    '.venv'
+    '__pycache__'
+    # npm
+    'node_modules'
+    # Rust
+    'target'
+    # macOS
+    '.DS_Store'
+    # Git
+    '.git'
+)
+
+rsync_exclude_args() {
+    local args=()
+    for exclude in "${RSYNC_EXCLUDES[@]}"; do
+        args+=("--exclude='$exclude'")
+    done
+    echo "${args[@]}"
+}
+alias sync_dir="rsync -avh --delete --progress $(rsync_exclude_args)"
