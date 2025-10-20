@@ -11,6 +11,11 @@ if command -v lazygit >/dev/null 2>&1; then
     alias lg='lazygit'
 fi
 
+if command -v pnpm >/dev/null 2>&1; then
+    alias pn='pnpm'
+    alias px='pnpx'
+fi
+
 
 # Directories and files to exclude from rsync
 RSYNC_EXCLUDES=(
