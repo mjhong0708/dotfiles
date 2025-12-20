@@ -1,0 +1,5 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+[aws]
+format = 'at [$symbol($profile)(\($region\) )(\[$duration\] )]($style)'
+symbol = "☁️ "

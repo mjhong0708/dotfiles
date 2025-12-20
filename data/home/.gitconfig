@@ -1,0 +1,20 @@
+[user]
+    name = Minjoon Hong
+    email = mjhong0708@naver.com
+    username = mjhong0708
+
+[init]
+    defaultBranch = main
+
+[core]
+    editor = nvim
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+
+[merge]
+    conflictStyle = zdiff3
