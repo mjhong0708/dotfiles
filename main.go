@@ -1,6 +1,5 @@
 /*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
+Copyright © 2025 Minjoon Hong <mjhong0708@naver.com>
 */
 package main
 
