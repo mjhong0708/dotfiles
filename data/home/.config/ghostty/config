@@ -1,0 +1,35 @@
+font-family = "SFMono Nerd Font"
+font-family = "Noto Sans KR"
+font-style = "Regular"
+font-style-bold = "Bold"
+font-size = 16
+
+window-padding-x = 6
+window-padding-y = 4
+
+foreground = #AEB8EF
+background = #101628
+background-opacity = 0.95
+background-blur = true
+
+cursor-color = #adb7ef
+bold-color = bright
+selection-foreground = #ebe7e7
+selection-background = #53597a
+
+palette = 0=#000000
+palette = 1=#db7e88
+palette = 2=#a1e1bc
+palette = 3=#eabe87
+palette = 4=#91b6ed
+palette = 5=#ad47b6
+palette = 6=#9ee2f3
+palette = 7=#cdcdcd
+palette = 8=#656565
+palette = 9=#db7e88
+palette = 10=#99eaba
+palette = 11=#f0d476
+palette = 12=#408cec
+palette = 13=#ad47b6
+palette = 14=#56b6db
+palette = 15=e5e5e5
