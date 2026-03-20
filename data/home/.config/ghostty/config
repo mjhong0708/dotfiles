@@ -33,3 +33,5 @@ palette = 12=#408cec
 palette = 13=#ad47b6
 palette = 14=#56b6db
 palette = 15=e5e5e5
+
+shell-integration-features = ssh-terminfo
